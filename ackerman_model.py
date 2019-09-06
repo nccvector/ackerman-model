@@ -83,7 +83,7 @@ class Ackerman:
 
         div = det(xdiff, ydiff)
         if div == 0:
-            raise Exception('lines do not intersect')
+            return None, None
 
         d = (det(*line1), det(*line2))
         x = det(d, xdiff) / div
@@ -117,64 +117,83 @@ class Ackerman:
 
             x, y = self._line_intersection((self.rear_position, heading_abs_vector), (self.front_position,steering_abs_vector))
 
-            arc_center = np.array([x, y])
+            if not x == None:
+                arc_center = np.array([x, y])
 
-            # Finding theta_s wrt to rear axel
-            R = np.linalg.norm(arc_center - self.front_position)
-            r = np.linalg.norm(arc_center - self.rear_position)
-            theta_step = math.degrees(step_size/r)
+                # Finding theta_s wrt to rear axel
+                R = np.linalg.norm(arc_center - self.front_position)
+                r = np.linalg.norm(arc_center - self.rear_position)
+                theta_step = math.degrees(step_size/r)
 
-            # theta_s is the step the front and back are both going to move along arc
+                # theta_s is the step the front and back are both going to move along arc
 
-            # Calculating arc angles
-            rear_base_arc_vector = self.rear_position - arc_center
-            rear_base_arc_angle = math.degrees(math.atan2(rear_base_arc_vector[1], rear_base_arc_vector[0]))
-            # if rear_base_arc_angle < 0:
-            #     rear_base_arc_angle += 360
+                # Calculating arc angles
+                rear_base_arc_vector = self.rear_position - arc_center
+                rear_base_arc_angle = math.degrees(math.atan2(rear_base_arc_vector[1], rear_base_arc_vector[0]))
+                # if rear_base_arc_angle < 0:
+                #     rear_base_arc_angle += 360
 
-            front_base_arc_vector = self.front_position - arc_center
-            front_base_arc_angle = math.degrees(math.atan2(front_base_arc_vector[1], front_base_arc_vector[0]))
-            # if front_base_arc_angle < 0:
-            #     front_base_arc_angle += 360
+                front_base_arc_vector = self.front_position - arc_center
+                front_base_arc_angle = math.degrees(math.atan2(front_base_arc_vector[1], front_base_arc_vector[0]))
+                # if front_base_arc_angle < 0:
+                #     front_base_arc_angle += 360
 
-            if steering_angle <= 0:
-                rear_arc_angle = rear_base_arc_angle + theta_step
-                front_arc_angle = front_base_arc_angle + theta_step
-            else:
-                rear_arc_angle = rear_base_arc_angle - theta_step
-                front_arc_angle = front_base_arc_angle - theta_step
+                if steering_angle < 0:
+                    rear_arc_angle = rear_base_arc_angle + theta_step
+                    front_arc_angle = front_base_arc_angle + theta_step
+                elif steering_angle > 0:
+                    rear_arc_angle = rear_base_arc_angle - theta_step
+                    front_arc_angle = front_base_arc_angle - theta_step
+                
+                if not steering_angle == None and steering_angle != 0:
 
-            # Calculating new positions
-            new_rear_x = arc_center[0] + r * math.cos(math.radians(rear_arc_angle))
-            new_rear_y = arc_center[1] + r * math.sin(math.radians(rear_arc_angle))
+                    # Calculating new positions
+                    new_rear_x = arc_center[0] + r * math.cos(math.radians(rear_arc_angle))
+                    new_rear_y = arc_center[1] + r * math.sin(math.radians(rear_arc_angle))
 
-            new_front_x = arc_center[0] + R * math.cos(math.radians(front_arc_angle))
-            new_front_y = arc_center[1] + R * math.sin(math.radians(front_arc_angle))
+                    new_front_x = arc_center[0] + R * math.cos(math.radians(front_arc_angle))
+                    new_front_y = arc_center[1] + R * math.sin(math.radians(front_arc_angle))
 
-            # Updating attributes
-            self.rear_position = np.array([new_rear_x, new_rear_y])
-            self.front_position = np.array([new_front_x, new_front_y])
-            diff = self.front_position - self.rear_position
-            self.heading = diff/np.linalg.norm(diff)
-            self.normal = np.array([self.heading[1], -self.heading[0]])
+                    # Updating attributes
+                    self.rear_position = np.array([new_rear_x, new_rear_y])
+                    self.front_position = np.array([new_front_x, new_front_y])
+                    diff = self.front_position - self.rear_position
+                    self.heading = diff/np.linalg.norm(diff)
+                    self.normal = np.array([self.heading[1], -self.heading[0]])
 
-            self.front_left_position = self.front_position - self.normal * self.tread/2
-            self.front_right_position = self.front_position + self.normal * self.tread/2
-            self.rear_left_position = self.rear_position - self.normal * self.tread/2
-            self.rear_right_position = self.rear_position + self.normal * self.tread/2
+                    self.front_left_position = self.front_position - self.normal * self.tread/2
+                    self.front_right_position = self.front_position + self.normal * self.tread/2
+                    self.rear_left_position = self.rear_position - self.normal * self.tread/2
+                    self.rear_right_position = self.rear_position + self.normal * self.tread/2
 
-            # Calculating left and right steering angles fro visualization
-            left_turn_vector = self.front_left_position - arc_center
-            left_turn_vector = np.array([left_turn_vector[1], -left_turn_vector[0]])
-            left_turn_vector = left_turn_vector/np.linalg.norm(left_turn_vector)
-            left_tyre_p1 = self.front_left_position + left_turn_vector * self.tyre_radius
-            left_tyre_p2 = self.front_left_position - left_turn_vector * self.tyre_radius
+                    # Calculating left and right steering angles fro visualization
+                    left_turn_vector = self.front_left_position - arc_center
+                    left_turn_vector = np.array([left_turn_vector[1], -left_turn_vector[0]])
+                    left_turn_vector = left_turn_vector/np.linalg.norm(left_turn_vector)
+                    left_tyre_p1 = self.front_left_position + left_turn_vector * self.tyre_radius
+                    left_tyre_p2 = self.front_left_position - left_turn_vector * self.tyre_radius
 
-            right_turn_vector = self.front_right_position - arc_center
-            right_turn_vector = np.array([right_turn_vector[1], -right_turn_vector[0]])
-            right_turn_vector = right_turn_vector/np.linalg.norm(right_turn_vector)
-            right_tyre_p1 = self.front_right_position + right_turn_vector * self.tyre_radius
-            right_tyre_p2 = self.front_right_position - right_turn_vector * self.tyre_radius
+                    right_turn_vector = self.front_right_position - arc_center
+                    right_turn_vector = np.array([right_turn_vector[1], -right_turn_vector[0]])
+                    right_turn_vector = right_turn_vector/np.linalg.norm(right_turn_vector)
+                    right_tyre_p1 = self.front_right_position + right_turn_vector * self.tyre_radius
+                    right_tyre_p2 = self.front_right_position - right_turn_vector * self.tyre_radius
+
+            if x == None or steering_angle == 0:
+                # Updating attributes
+                self.rear_position += self.heading * step_size
+                self.front_position += self.heading * step_size
+                self.front_left_position += self.heading * step_size
+                self.front_right_position += self.heading * step_size
+                self.rear_left_position += self.heading * step_size
+                self.rear_right_position += self.heading * step_size
+
+                # Calculating left and right steering angles for visualization
+                left_tyre_p1 = self.front_left_position + self.heading * self.tyre_radius
+                left_tyre_p2 = self.front_left_position - self.heading * self.tyre_radius
+
+                right_tyre_p1 = self.front_right_position + self.heading * self.tyre_radius
+                right_tyre_p2 = self.front_right_position - self.heading * self.tyre_radius
 
             self.front_left_tyre = [left_tyre_p1, left_tyre_p2]
             self.front_right_tyre = [right_tyre_p1, right_tyre_p2]
@@ -214,7 +233,7 @@ if __name__ == "__main__":
     cv2.imshow('image', cv2.flip(display2, 0))
     cv2.waitKey(0)
     
-    step = 2
+    step = 1
     steer_angle = -35
     for i in range(1, 1000):
  
