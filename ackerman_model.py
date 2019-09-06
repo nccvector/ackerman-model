@@ -4,7 +4,7 @@ import math
 
 class Ackerman:
 
-    def __init__(self, position, heading, wheel_base, tread, max_steer, min_step, drive="rear"):
+    def __init__(self, position, heading, wheel_base, tread, max_steer, min_step, drive="rear", tyre_radius=10):
 
         """
         Ackerman model class
@@ -44,6 +44,7 @@ class Ackerman:
         self.min_step = min_step
 
         self.drive = drive
+        self.tyre_radius = tyre_radius
 
         # Calculated attributes
         self.front_position = self.rear_position + self.heading * self.wheel_base   # Center of front axel
@@ -53,6 +54,25 @@ class Ackerman:
         self.front_right_position = self.front_position + self.normal * self.tread/2
         self.rear_left_position = self.rear_position - self.normal * self.tread/2
         self.rear_right_position = self.rear_position + self.normal * self.tread/2
+
+        # Calculating left and right tyres
+        left_tyre_p1 = self.front_left_position + self.heading * self.tyre_radius
+        left_tyre_p2 = self.front_left_position - self.heading * self.tyre_radius
+
+        right_tyre_p1 = self.front_right_position + self.heading * self.tyre_radius
+        right_tyre_p2 = self.front_right_position - self.heading * self.tyre_radius
+
+        self.front_left_tyre = [left_tyre_p1, left_tyre_p2]
+        self.front_right_tyre = [right_tyre_p1, right_tyre_p2]
+
+        left_tyre_p1 = self.rear_left_position + self.heading * self.tyre_radius
+        left_tyre_p2 = self.rear_left_position - self.heading * self.tyre_radius
+
+        right_tyre_p1 = self.rear_right_position + self.heading * self.tyre_radius
+        right_tyre_p2 = self.rear_right_position - self.heading * self.tyre_radius
+
+        self.rear_left_tyre = [left_tyre_p1, left_tyre_p2]
+        self.rear_right_tyre = [right_tyre_p1, right_tyre_p2]
 
     def _line_intersection(self, line1, line2):
         xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
@@ -143,7 +163,33 @@ class Ackerman:
             self.rear_left_position = self.rear_position - self.normal * self.tread/2
             self.rear_right_position = self.rear_position + self.normal * self.tread/2
 
-    def get_corners(self):
+            # Calculating left and right steering angles fro visualization
+            left_turn_vector = self.front_left_position - arc_center
+            left_turn_vector = np.array([left_turn_vector[1], -left_turn_vector[0]])
+            left_turn_vector = left_turn_vector/np.linalg.norm(left_turn_vector)
+            left_tyre_p1 = self.front_left_position + left_turn_vector * self.tyre_radius
+            left_tyre_p2 = self.front_left_position - left_turn_vector * self.tyre_radius
+
+            right_turn_vector = self.front_right_position - arc_center
+            right_turn_vector = np.array([right_turn_vector[1], -right_turn_vector[0]])
+            right_turn_vector = right_turn_vector/np.linalg.norm(right_turn_vector)
+            right_tyre_p1 = self.front_right_position + right_turn_vector * self.tyre_radius
+            right_tyre_p2 = self.front_right_position - right_turn_vector * self.tyre_radius
+
+            self.front_left_tyre = [left_tyre_p1, left_tyre_p2]
+            self.front_right_tyre = [right_tyre_p1, right_tyre_p2]
+
+            left_tyre_p1 = self.rear_left_position + self.heading * self.tyre_radius
+            left_tyre_p2 = self.rear_left_position - self.heading * self.tyre_radius
+
+            right_tyre_p1 = self.rear_right_position + self.heading * self.tyre_radius
+            right_tyre_p2 = self.rear_right_position - self.heading * self.tyre_radius
+
+            self.rear_left_tyre = [left_tyre_p1, left_tyre_p2]
+            self.rear_right_tyre = [right_tyre_p1, right_tyre_p2]
+
+
+    def get_axel_corners(self):
         corners = [self.front_left_position, self.front_right_position, self.rear_right_position, self.rear_left_position]
         corners = np.array(corners, np.int32)
         corners = corners.reshape((-1,1,2))
@@ -153,22 +199,42 @@ class Ackerman:
 if __name__ == "__main__":
     
     display = np.ones((720,1280,3), dtype=np.uint8) * 255
+    display2 = np.ones((720,1280,3), dtype=np.uint8) * 255
 
-    car = Ackerman(np.array([640,360]), np.array([0,1]), 60, 25, 45, 1)
-    cv2.polylines(display, car.get_corners(), True, (0,255,0), 1)
+    # Drawing car axel frames
+    car = Ackerman(np.array([640,300]), np.array([0,1]), 60, 25, 33.75, 1)
+    cv2.polylines(display2, car.get_axel_corners(), True, (255,50,255), 1)
+    # Drawing tyres
+    cv2.line(display, tuple(car.front_left_tyre[0].astype(np.int32)), tuple(car.front_left_tyre[1].astype(np.int32)), (0,0,255), 1, cv2.LINE_AA)
+    cv2.line(display, tuple(car.front_right_tyre[0].astype(np.int32)), tuple(car.front_right_tyre[1].astype(np.int32)), (0,0,255), 1, cv2.LINE_AA)
+    cv2.line(display, tuple(car.rear_left_tyre[0].astype(np.int32)), tuple(car.rear_left_tyre[1].astype(np.int32)), (255,0,0), 1, cv2.LINE_AA)
+    cv2.line(display, tuple(car.rear_right_tyre[0].astype(np.int32)), tuple(car.rear_right_tyre[1].astype(np.int32)), (255,0,0), 1, cv2.LINE_AA)
+
+    display2 = cv2.addWeighted(display, 0.2, display2, 0.8, 0)
+    cv2.imshow('image', cv2.flip(display2, 0))
+    cv2.waitKey(0)
     
-    for i in range(1, 25):
-        car.update(30,10)
-        cv2.polylines(display, car.get_corners(), True, (0,255,0), 1)
+    step = 2
+    steer_angle = -35
+    for i in range(1, 1000):
+ 
+        if i % 50 == 0:
+            step = -step
 
-        cv2.imshow('image', cv2.flip(display, 0))
-        cv2.waitKey(30)
+        steer_angle += step
+        car.update(steer_angle,10)
 
-    for i in range(0, 25):
-        car.update(45,-6)
-        cv2.polylines(display, car.get_corners(), True, (0,255,0), 1)
+        # Drawing car axel frame
+        display2 = np.ones((720,1280,3), dtype=np.uint8) * 255
+        cv2.polylines(display2, car.get_axel_corners(), True, (255,50,255), 1)
+        # Drawing tyres
+        cv2.line(display, tuple(car.front_left_tyre[0].astype(np.int32)), tuple(car.front_left_tyre[1].astype(np.int32)), (0,0,255), 1, cv2.LINE_AA)
+        cv2.line(display, tuple(car.front_right_tyre[0].astype(np.int32)), tuple(car.front_right_tyre[1].astype(np.int32)), (0,0,255), 1, cv2.LINE_AA)
+        cv2.line(display, tuple(car.rear_left_tyre[0].astype(np.int32)), tuple(car.rear_left_tyre[1].astype(np.int32)), (255,0,0), 1, cv2.LINE_AA)
+        cv2.line(display, tuple(car.rear_right_tyre[0].astype(np.int32)), tuple(car.rear_right_tyre[1].astype(np.int32)), (255,0,0), 1, cv2.LINE_AA)
 
-        cv2.imshow('image', cv2.flip(display, 0))
-        cv2.waitKey(30)
+        display2 = cv2.addWeighted(display, 0.2, display2, 0.8, 0)
+        cv2.imshow('image', cv2.flip(display2, 0))
+        cv2.waitKey(50)
 
     cv2.waitKey(0)
