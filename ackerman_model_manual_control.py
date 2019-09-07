@@ -4,7 +4,7 @@ import math
 
 class Ackerman:
 
-    def __init__(self, position, heading, wheel_base, tread, max_steer, min_step, drive="rear", tyre_radius=0.33, max_step=10):
+    def __init__(self, position, heading, wheel_base, tread, max_steer, min_velocity, max_velocity, drive="rear", tyre_radius=0.5):
 
         """
         Ackerman model class
@@ -41,11 +41,11 @@ class Ackerman:
         self.wheel_base = wheel_base
         self.tread = tread
         self.max_steer = max_steer
-        self.min_step = min_step
+        self.min_velocity = min_velocity
 
         self.drive = drive
         self.tyre_radius = tyre_radius
-        self.max_step = max_step
+        self.max_velocity = max_velocity
 
         # Calculated attributes
         self.front_position = self.rear_position + self.heading * self.wheel_base   # Center of front axel
@@ -99,10 +99,10 @@ class Ackerman:
             steering_angle = self.max_steer
 
         # limiting step size
-        if step_size < self.min_step:
-            step_size = self.min_step
-        elif step_size > self.max_step:
-            step_size = self.max_step
+        if step_size < self.min_velocity:
+            step_size = self.min_velocity
+        elif step_size > self.max_velocity:
+            step_size = self.max_velocity
 
         # Drive types
         if self.drive == "rear":
@@ -226,62 +226,73 @@ def draw(image, object, mtp_ratio):
     corners = corners.reshape((-1,1,2))
 
     # Drawing axel frame
-    cv2.polylines(display2, [corners.astype(np.int32)], True, (255,50,255), 1)
+    cv2.polylines(image, [corners.astype(np.int32)], True, (255,50,255), 1)
 
     front_left_tyre = center + np.array(object.front_left_tyre) * mtp_ratio
     front_right_tyre = center + np.array(object.front_right_tyre) * mtp_ratio
     rear_left_tyre = center + np.array(object.rear_left_tyre) * mtp_ratio
     rear_right_tyre = center + np.array(object.rear_right_tyre) * mtp_ratio
 
-    cv2.line(display, tuple(front_left_tyre[0].astype(np.int32)), 
+    cv2.line(image, tuple(front_left_tyre[0].astype(np.int32)), 
         tuple(front_left_tyre[1].astype(np.int32)), (0,0,255), 3, cv2.LINE_AA)
-    cv2.line(display, tuple(front_right_tyre[0].astype(np.int32)), 
+    cv2.line(image, tuple(front_right_tyre[0].astype(np.int32)), 
         tuple(front_right_tyre[1].astype(np.int32)), (0,0,255), 3, cv2.LINE_AA)
-    cv2.line(display, tuple(rear_left_tyre[0].astype(np.int32)), 
+    cv2.line(image, tuple(rear_left_tyre[0].astype(np.int32)), 
         tuple(rear_left_tyre[1].astype(np.int32)), (255,0,0), 3, cv2.LINE_AA)
-    cv2.line(display, tuple(rear_right_tyre[0].astype(np.int32)), 
+    cv2.line(image, tuple(rear_right_tyre[0].astype(np.int32)), 
         tuple(rear_right_tyre[1].astype(np.int32)), (255,0,0), 3, cv2.LINE_AA)
 
 
 if __name__ == "__main__":
     
     display = np.ones((720,1280,3), dtype=np.uint8) * 255
-    display2 = np.ones((720,1280,3), dtype=np.uint8) * 255
-    mtp_ratio = 20
+    mtp_ratio = 20.0
 
-    init_position = np.array([0,0])
-    init_heading = np.array([0,1])
+    # Time calculations
+    delay_milliseconds = 100
+    dt = delay_milliseconds/1000
+
+    init_position = np.array([0.0,0.0])
+    init_heading = np.array([0.0,1.0])
     wheel_base = 4.76
     tread = 2.3
     max_steer_angle = 33.75
-    min_step = 0.01
+    min_velocity = -10.0 * dt
+    max_velocity = 55.55 * dt
 
     # Drawing car axel frames
-    car = Ackerman(init_position, init_heading, wheel_base, tread, max_steer_angle, min_step)
+    car = Ackerman(init_position, init_heading, wheel_base, tread, max_steer_angle, min_velocity, max_velocity)
     
     draw(display, car, mtp_ratio)
 
-    display2 = cv2.addWeighted(display, 0.2, display2, 0.8, 0)
-    cv2.imshow('image', cv2.flip(display2, 0))
-    cv2.waitKey(0)
+    cv2.imshow('image', cv2.flip(display, 0))
+    key = cv2.waitKey(0)
     
-    step = 1
-    steer_angle = -35
-    for i in range(1, 1000):
- 
-        if i % 200 == 0:
-            step = -step
+    velocity = 0
+    steer_angle = 0
+    while True:
 
-        steer_angle += step
-        car.update(steer_angle,0.1)
+        if key == ord('w'):
+            if velocity < max_velocity:
+                velocity += 0.01
+        elif key == ord('s'):
+            if velocity > -max_velocity:
+                velocity -= 0.01
+        else:
+            velocity *= 0.5
+        
+        if key == ord('a'):
+            steer_angle -= 5
+        elif key == ord('d'):
+            steer_angle += 5
+
+        car.update(steer_angle, velocity)
 
         # Drawing car axel frame
-        display2 = np.ones((720,1280,3), dtype=np.uint8) * 255
-        
+        display = np.ones((720,1280,3), dtype=np.uint8) * 255
         draw(display, car, mtp_ratio)
 
-        display2 = cv2.addWeighted(display, 0.2, display2, 0.8, 0)
-        cv2.imshow('image', cv2.flip(display2, 0))
-        cv2.waitKey(50)
+        cv2.imshow('image', cv2.flip(display, 0))
+        key = cv2.waitKey(delay_milliseconds)
 
     cv2.waitKey(0)
