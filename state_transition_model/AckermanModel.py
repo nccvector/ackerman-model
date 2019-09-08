@@ -1,8 +1,7 @@
-from cv2 import cv2
 import numpy as np 
 import math
 
-class Ackerman:
+class AckermanModel:
 
     def __init__(self, position, heading, wheel_base, tread, max_steer, min_velocity, max_velocity, drive="rear", tyre_radius=0.5):
 
@@ -216,83 +215,3 @@ class Ackerman:
 
         corners = [self.front_left_position, self.front_right_position, self.rear_right_position, self.rear_left_position]
         return corners
-
-
-def draw(image, object, mtp_ratio):
-    center = np.array([image.shape[1]/2, image.shape[0]/2]).astype(np.int32)
-
-    corners = car.get_axel_corners()
-    corners = center + np.array(corners) * mtp_ratio
-    corners = corners.reshape((-1,1,2))
-
-    # Drawing axel frame
-    cv2.polylines(image, [corners.astype(np.int32)], True, (255,50,255), 1)
-
-    front_left_tyre = center + np.array(object.front_left_tyre) * mtp_ratio
-    front_right_tyre = center + np.array(object.front_right_tyre) * mtp_ratio
-    rear_left_tyre = center + np.array(object.rear_left_tyre) * mtp_ratio
-    rear_right_tyre = center + np.array(object.rear_right_tyre) * mtp_ratio
-
-    cv2.line(image, tuple(front_left_tyre[0].astype(np.int32)), 
-        tuple(front_left_tyre[1].astype(np.int32)), (0,0,255), 3, cv2.LINE_AA)
-    cv2.line(image, tuple(front_right_tyre[0].astype(np.int32)), 
-        tuple(front_right_tyre[1].astype(np.int32)), (0,0,255), 3, cv2.LINE_AA)
-    cv2.line(image, tuple(rear_left_tyre[0].astype(np.int32)), 
-        tuple(rear_left_tyre[1].astype(np.int32)), (255,0,0), 3, cv2.LINE_AA)
-    cv2.line(image, tuple(rear_right_tyre[0].astype(np.int32)), 
-        tuple(rear_right_tyre[1].astype(np.int32)), (255,0,0), 3, cv2.LINE_AA)
-
-
-if __name__ == "__main__":
-    
-    display = np.ones((720,1280,3), dtype=np.uint8) * 255
-    mtp_ratio = 20.0
-
-    # Time calculations
-    delay_milliseconds = 100
-    dt = delay_milliseconds/1000
-
-    init_position = np.array([0.0,0.0])
-    init_heading = np.array([0.0,1.0])
-    wheel_base = 4.76
-    tread = 2.3
-    max_steer_angle = 33.75
-    min_velocity = -10.0 * dt
-    max_velocity = 55.55 * dt
-
-    # Drawing car axel frames
-    car = Ackerman(init_position, init_heading, wheel_base, tread, max_steer_angle, min_velocity, max_velocity)
-    
-    draw(display, car, mtp_ratio)
-
-    cv2.imshow('image', cv2.flip(display, 0))
-    key = cv2.waitKey(0)
-    
-    velocity = 0
-    steer_angle = 0
-    while True:
-
-        if key == ord('w'):
-            if velocity < max_velocity:
-                velocity += 0.01
-        elif key == ord('s'):
-            if velocity > -max_velocity:
-                velocity -= 0.01
-        else:
-            velocity *= 0.5
-        
-        if key == ord('a'):
-            steer_angle -= 5
-        elif key == ord('d'):
-            steer_angle += 5
-
-        car.update(steer_angle, velocity)
-
-        # Drawing car axel frame
-        display = np.ones((720,1280,3), dtype=np.uint8) * 255
-        draw(display, car, mtp_ratio)
-
-        cv2.imshow('image', cv2.flip(display, 0))
-        key = cv2.waitKey(delay_milliseconds)
-
-    cv2.waitKey(0)
