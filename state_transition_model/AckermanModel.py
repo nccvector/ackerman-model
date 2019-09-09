@@ -148,7 +148,7 @@ class AckermanModel:
                     rear_arc_angle = rear_base_arc_angle - theta_step
                     front_arc_angle = front_base_arc_angle - theta_step
                 
-                if not steering_angle == None and steering_angle != 0:
+                if not steering_angle is None and not steering_angle == 0:
 
                     # Calculating new positions
                     new_rear_x = arc_center[0] + r * math.cos(math.radians(rear_arc_angle))
