@@ -144,7 +144,7 @@ if __name__ == "__main__":
         f_vector = cp_2 - cp_1
 
         # Avoiding infinite slope
-        if f_vector[1] == 0:
+        if f_vector[0] == 0:
             m = 1000000
         else:
             m = f_vector[1]/f_vector[0]
